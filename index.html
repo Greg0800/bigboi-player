@@ -1,0 +1,39 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="referrer" content="strict-origin-when-cross-origin">
+<title>BigBoi Home player</title>
+<style>html,body{margin:0;height:100%;background:#000;overflow:hidden}#p{width:100%;height:100%}</style>
+</head>
+<body>
+<div id="p"></div>
+<script>
+/* YouTube player relay for the BigBoi Home TV launcher. YouTube's embed needs a real website as its
+   referrer, which a packaged TV app doesn't have, so the launcher frames this page and drives it with
+   postMessage: {cmd:'load',id}, {cmd:'play'}, {cmd:'pause'}. It reports {source:'bigboi-player',event,...}. */
+var params = new URLSearchParams(location.search), player = null, pending = params.get('v');
+function send(msg) { msg.source = 'bigboi-player'; parent.postMessage(JSON.stringify(msg), '*'); }
+function onYouTubeIframeAPIReady() {
+  player = new YT.Player('p', {
+    videoId: pending || undefined,
+    playerVars: { autoplay: 1, controls: 0, rel: 0, playsinline: 1, modestbranding: 1, iv_load_policy: 3 },
+    events: {
+      onReady: function () { send({ event: 'ready' }); if (pending) player.playVideo(); },
+      onStateChange: function (e) { send({ event: 'state', state: e.data }); },
+      onError: function (e) { send({ event: 'error', code: e.data }); }
+    }
+  });
+}
+window.addEventListener('message', function (e) {
+  var m; try { m = typeof e.data === 'string' ? JSON.parse(e.data) : e.data; } catch (x) { return; }
+  if (!m || !m.cmd) return;
+  if (m.cmd === 'load') { pending = m.id; if (player && player.loadVideoById) player.loadVideoById(m.id); }
+  else if (player && m.cmd === 'play') player.playVideo();
+  else if (player && m.cmd === 'pause') player.pauseVideo();
+});
+</script>
+<script src="https://www.youtube.com/iframe_api"></script>
+</body>
+</html>
