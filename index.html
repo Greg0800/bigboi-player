@@ -12,7 +12,7 @@
 <script>
 /* YouTube player relay for the BigBoi Home TV launcher. YouTube's embed needs a real website as its
    referrer, which a packaged TV app doesn't have, so the launcher frames this page and drives it with
-   postMessage: {cmd:'load',id}, {cmd:'play'}, {cmd:'pause'}. It reports {source:'bigboi-player',event,...}. */
+   postMessage: {cmd:'load',id}, {cmd:'play'}, {cmd:'pause'}, {cmd:'volume',value:0..1}. It reports {source:'bigboi-player',event,...}. */
 var params = new URLSearchParams(location.search), player = null, pending = params.get('v');
 function send(msg) { msg.source = 'bigboi-player'; parent.postMessage(JSON.stringify(msg), '*'); }
 function onYouTubeIframeAPIReady() {
@@ -32,6 +32,7 @@ window.addEventListener('message', function (e) {
   if (m.cmd === 'load') { pending = m.id; if (player && player.loadVideoById) player.loadVideoById(m.id); }
   else if (player && m.cmd === 'play') player.playVideo();
   else if (player && m.cmd === 'pause') player.pauseVideo();
+  else if (player && m.cmd === 'volume') { if (m.value <= 0) player.mute(); else { player.unMute(); player.setVolume(Math.round(m.value * 100)); } }
 });
 </script>
 <script src="https://www.youtube.com/iframe_api"></script>
